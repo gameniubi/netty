@@ -47,25 +47,46 @@ import java.util.Map;
  * <p>When not used in a {@link ServerBootstrap} context, the {@link #bind()} methods are useful for connectionless
  * transports such as datagram (UDP).</p>
  */
+/**
+ * 其中大部分方法都是链式调用
+ */
 public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C extends Channel> implements Cloneable {
 
+    /** EventLoopGroup对象 */
     volatile EventLoopGroup group;
+
+    /** channel工厂，用于创建channel对象 */
     @SuppressWarnings("deprecation")
     private volatile ChannelFactory<? extends C> channelFactory;
+
+    /** 本地地址 */
     private volatile SocketAddress localAddress;
+
+    /** 可选选项集合 */
     private final Map<ChannelOption<?>, Object> options = new LinkedHashMap<ChannelOption<?>, Object>();
+
+    /** 属性集合 */
     private final Map<AttributeKey<?>, Object> attrs = new LinkedHashMap<AttributeKey<?>, Object>();
+
+    /** 处理器 */
     private volatile ChannelHandler handler;
 
     AbstractBootstrap() {
         // Disallow extending from a different package.
     }
 
+    /**
+     * AbstractBootstrap 是个抽象类，并且实现 Cloneable 接口。另外，它声明了 B 、C 两个泛型：
+     * B ：继承 AbstractBootstrap 类，用于表示自身的类型。
+     * C ：继承 Channel 类，表示表示创建的 Channel 类型。
+     */
     AbstractBootstrap(AbstractBootstrap<B, C> bootstrap) {
         group = bootstrap.group;
         channelFactory = bootstrap.channelFactory;
         handler = bootstrap.handler;
         localAddress = bootstrap.localAddress;
+
+        // 此处使用锁，因为在其他线程方法可能更改options和attrs
         synchronized (bootstrap.options) {
             options.putAll(bootstrap.options);
         }
@@ -77,18 +98,21 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     /**
      * The {@link EventLoopGroup} which is used to handle all the events for the to-be-created
      * {@link Channel}
+     * <br>
+     * 设置 EventLoopGroup 到 group 中
      */
     public B group(EventLoopGroup group) {
         if (group == null) {
             throw new NullPointerException("group");
         }
-        if (this.group != null) {
+        if (this.group != null) {   // 已存在组属性则不允许设置
             throw new IllegalStateException("group set already");
         }
         this.group = group;
         return self();
     }
 
+    /** 返回自己本身 */
     @SuppressWarnings("unchecked")
     private B self() {
         return (B) this;
@@ -114,7 +138,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         if (channelFactory == null) {
             throw new NullPointerException("channelFactory");
         }
-        if (this.channelFactory != null) {
+        if (this.channelFactory != null) {  // 已存在channel工厂则不允许设置
             throw new IllegalStateException("channelFactory set already");
         }
 
@@ -279,19 +303,22 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     private ChannelFuture doBind(final SocketAddress localAddress) {
+        // 初始化并注册一个 Channel 对象，因为注册是异步的过程，所以返回一个 ChannelFuture 对象。
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
-        if (regFuture.cause() != null) {
+        if (regFuture.cause() != null) {    // 处理失败
             return regFuture;
         }
 
-        if (regFuture.isDone()) {
+        // 绑定 Channel 的端口，并注册 Channel 到 SelectionKey 中。
+        if (regFuture.isDone()) {   // 注册完成成功
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
             doBind0(regFuture, channel, localAddress, promise);
             return promise;
         } else {
             // Registration future is almost always fulfilled already, but just in case it's not.
+            // 添加监听器，在注册完成后，进行回调执行 #doBind0(...) 方法的逻辑。
             final PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
             regFuture.addListener(new ChannelFutureListener() {
                 @Override
@@ -314,6 +341,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         }
     }
 
+    /** 创建一个channel并注册入EventGroup */
     final ChannelFuture initAndRegister() {
         Channel channel = null;
         try {
@@ -330,8 +358,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             return new DefaultChannelPromise(new FailedChannel(), GlobalEventExecutor.INSTANCE).setFailure(t);
         }
 
-        ChannelFuture regFuture = config().group().register(channel);
-        if (regFuture.cause() != null) {
+        ChannelFuture regFuture = config().group().register(channel);   // 把channel注册到组内
+        if (regFuture.cause() != null) {    // 注册失败，解决问题
             if (channel.isRegistered()) {
                 channel.close();
             } else {

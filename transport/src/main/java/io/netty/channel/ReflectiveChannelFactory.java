@@ -23,6 +23,8 @@ import io.netty.util.internal.StringUtil;
  */
 public class ReflectiveChannelFactory<T extends Channel> implements ChannelFactory<T> {
 
+    /**
+     * channel对应的类 */
     private final Class<? extends T> clazz;
 
     public ReflectiveChannelFactory(Class<? extends T> clazz) {
@@ -32,6 +34,7 @@ public class ReflectiveChannelFactory<T extends Channel> implements ChannelFacto
         this.clazz = clazz;
     }
 
+    /** 通过反射的方式，用构造方法生成类 */
     @Override
     public T newChannel() {
         try {

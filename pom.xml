@@ -120,6 +120,24 @@
         <jdk>9</jdk>
       </activation>
     </profile>
+    <profile>
+      <id>boringssl-mac-aarch64</id>
+      <activation>
+        <os>
+          <!--
+           Automatically active on mac with aarch64 as we only release static boringssl version of
+           netty-tcnative for it.
+         -->
+          <family>mac</family>
+          <arch>aarch64</arch>
+        </os>
+      </activation>
+      <properties>
+        <tcnative.artifactId>netty-tcnative-boringssl-static</tcnative.artifactId>
+        <tcnative.classifier />
+      </properties>
+    </profile>
+
 
     <profile>
       <id>leak</id>
@@ -221,7 +239,7 @@
     <!-- Fedora-"like" systems. This is currently only used for the netty-tcnative dependency -->
     <os.detection.classifierWithLikes>fedora</os.detection.classifierWithLikes>
     <tcnative.artifactId>netty-tcnative</tcnative.artifactId>
-    <tcnative.version>2.0.12.Final</tcnative.version>
+    <tcnative.version>2.0.61.Final</tcnative.version>
     <tcnative.classifier>${os.detected.classifier}</tcnative.classifier>
     <conscrypt.groupId>org.conscrypt</conscrypt.groupId>
     <conscrypt.artifactId>conscrypt-openjdk-uber</conscrypt.artifactId>
