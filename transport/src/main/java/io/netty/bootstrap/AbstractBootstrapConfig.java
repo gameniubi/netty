@@ -28,7 +28,10 @@ import java.util.Map;
 
 /**
  * Exposes the configuration of an {@link AbstractBootstrap}.
- */
+ *每个 Config 类，对应一个 Bootstrap 类。
+ * ServerBootstrapConfig 和 BootstrapConfig 的实现代码，和 AbstractBootstrapConfig 基本一致.
+ * /
+/** bootstrap 属性，对应的启动类对象。在每个方法中，我们可以看到，都是直接调用 boostrap 属性对应的方法，读取对应的配置。 */
 public abstract class AbstractBootstrapConfig<B extends AbstractBootstrap<B, C>, C extends Channel> {
 
     protected final B bootstrap;

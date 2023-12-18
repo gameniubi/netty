@@ -231,6 +231,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * Validate all the parameters. Sub-classes may override this, but should
      * call the super method in that case.
      */
+    /** 校验配置是否正确。检查group与channelFactory是否已经赋值 */
     public B validate() {
         if (group == null) {
             throw new IllegalStateException("group not set");
@@ -245,7 +246,11 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * Returns a deep clone of this bootstrap which has the identical configuration.  This method is useful when making
      * multiple {@link Channel}s with similar settings.  Please note that this method does not clone the
      * {@link EventLoopGroup} deeply but shallowly, making the group a shared resource.
+     * 来自实现 Cloneable 接口，在子类中实现。这是深拷贝，即创建一个新对象，但不是所有的属性是深拷贝。
+     * 浅拷贝属性：group、channelFactory、handler、localAddress 。
+     * 深拷贝属性：options、attrs 。
      */
+    /** 抽象方法，克隆一个 AbstractBootstrap 对象。 */
     @Override
     @SuppressWarnings("CloneDoesntDeclareCloneNotSupportedException")
     public abstract B clone();
@@ -306,6 +311,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         // 初始化并注册一个 Channel 对象，因为注册是异步的过程，所以返回一个 ChannelFuture 对象。
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
+
         if (regFuture.cause() != null) {    // 处理失败
             return regFuture;
         }
@@ -424,6 +430,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * Returns the {@link AbstractBootstrapConfig} object that can be used to obtain the current config
      * of the bootstrap.
      */
+    /** 返回当前 AbstractBootstrap 的配置对象。 */
     public abstract AbstractBootstrapConfig<B, C> config();
 
     static <K, V> Map<K, V> copiedMap(Map<K, V> map) {

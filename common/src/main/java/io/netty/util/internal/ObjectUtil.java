@@ -28,6 +28,7 @@ public final class ObjectUtil {
      * Checks that the given argument is not null. If it is, throws {@link NullPointerException}.
      * Otherwise, returns the argument.
      */
+    /** 检查传入的类是否为空，若为空则以传入字符串报错 */
     public static <T> T checkNotNull(T arg, String text) {
         if (arg == null) {
             throw new NullPointerException(text);

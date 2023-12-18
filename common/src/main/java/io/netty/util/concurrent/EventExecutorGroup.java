@@ -27,6 +27,12 @@ import java.util.concurrent.TimeUnit;
  * life-cycle and allows shutting them down in a global fashion.
  *
  */
+/**
+ * 比较特殊的是，接口方法返回类型为 Future 不是 Java 原生的 java.util.concurrent.Future ，
+ * 而是 Netty 自己实现的 Future 接口。
+ * EventExecutorGroup 自身不执行任务，而是将任务 #submit(...) 或 #schedule(...) 给自己管理的 EventExecutor 的分组。
+ * 至于提交给哪一个 EventExecutor ，一般是通过 #next() 方法，选择一个 EventExecutor 。
+ */
 public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<EventExecutor> {
 
     /**
@@ -40,6 +46,7 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
      *
      * @return the {@link #terminationFuture()}
      */
+    /** 优雅关闭 */
     Future<?> shutdownGracefully();
 
     /**
@@ -56,6 +63,7 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
      *
      * @return the {@link #terminationFuture()}
      */
+    /** 优雅关闭 */
     Future<?> shutdownGracefully(long quietPeriod, long timeout, TimeUnit unit);
 
     /**
@@ -81,11 +89,14 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
     /**
      * Returns one of the {@link EventExecutor}s managed by this {@link EventExecutorGroup}.
      */
+    /** 选择一个EventExecutor对象 */
     EventExecutor next();
 
+    // 实现自Iterable接口
     @Override
     Iterator<EventExecutor> iterator();
 
+    // 实现自ExecutorService接口
     @Override
     Future<?> submit(Runnable task);
 
@@ -95,6 +106,7 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
     @Override
     <T> Future<T> submit(Callable<T> task);
 
+    // 实现自ScheduledExecutorService 接口
     @Override
     ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit);
 

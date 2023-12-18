@@ -293,6 +293,7 @@
     <module>testsuite-osgi</module>
     <module>microbench</module>
     <module>bom</module>
+      <module>test</module>
   </modules>
 
   <dependencyManagement>

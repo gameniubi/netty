@@ -54,7 +54,10 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     private static final ClosedChannelException DO_CLOSE_CLOSED_CHANNEL_EXCEPTION = ThrowableUtil.unknownStackTrace(
             new ClosedChannelException(), AbstractNioChannel.class, "doClose()");
 
+    /** Netty NIO Channel 对象，持有的 Java 原生 NIO 的 Channel 对象。 */
     private final SelectableChannel ch;
+
+    /**  感兴趣的读事件的操作位值。*/
     protected final int readInterestOp;
     volatile SelectionKey selectionKey;
     boolean readPending;
