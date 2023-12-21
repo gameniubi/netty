@@ -53,16 +53,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * {@link Selector} and so does the multi-plexing of these in the event loop.
  *
  */
+/** 实现对注册到其中的 Channel 的就绪的 IO 事件，和对用户提交的任务进行处理。*/
 public final class NioEventLoop extends SingleThreadEventLoop {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(NioEventLoop.class);
 
     private static final int CLEANUP_INTERVAL = 256; // XXX Hard-coded value, but won't need customization.
 
+    /** 是否禁用SelectionKey的优化 默认开启 */
     private static final boolean DISABLE_KEYSET_OPTIMIZATION =
             SystemPropertyUtil.getBoolean("io.netty.noKeySetOptimization", false);
 
+    /**
+     * 少于该 N 值，不开启空轮询重建新的 Selector 对象的功能
+     */
     private static final int MIN_PREMATURE_SELECTOR_RETURNS = 3;
+
+    /**
+     * NIO Selector 空轮询该 N 次后，重建新的 Selector 对象
+     */
     private static final int SELECTOR_AUTO_REBUILD_THRESHOLD;
 
     private final IntSupplier selectNowSupplier = new IntSupplier() {
@@ -116,10 +125,20 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     /**
      * The NIO {@link Selector}.
      */
+    /** 包装的Selector对象，经过优化 */
     private Selector selector;
+
+    /** 未包装的Selector对象 */
     private Selector unwrappedSelector;
+
+    /**
+     * 注册的 SelectionKey 集合。Netty 自己实现，经过优化。
+     */
     private SelectedSelectionKeySet selectedKeys;
 
+    /**
+     * SelectorProvider 对象，用于创建 Selector 对象
+     */
     private final SelectorProvider provider;
 
     /**
@@ -127,13 +146,38 @@ public final class NioEventLoop extends SingleThreadEventLoop {
      * break out of its selection process. In our case we use a timeout for
      * the select method and the select method will block for that time unless
      * waken up.
+     *
+     * 唤醒标记。因为唤醒方法 {@link Selector#wakeup()} 开销比较大，通过该标识，减少调用。
+     *
+     * @see #wakeup(boolean)
+     * @see #run()
      */
     private final AtomicBoolean wakenUp = new AtomicBoolean();
 
+    /**
+     * Select 策略
+     *
+     * @see #select(boolean)
+     */
     private final SelectStrategy selectStrategy;
 
+    /**
+     * 处理 Channel 的就绪的 IO 事件，占处理任务的总时间的比例
+     */
     private volatile int ioRatio = 50;
+
+    /**
+     * 取消 SelectionKey 的数量
+     *
+     * TODO 1007 NioEventLoop cancel
+     */
     private int cancelledKeys;
+
+    /**
+     * 是否需要再次 select Selector 对象
+     *
+     * TODO 1007 NioEventLoop cancel
+     */
     private boolean needsToSelectAgain;
 
     NioEventLoop(NioEventLoopGroup parent, Executor executor, SelectorProvider selectorProvider,
@@ -401,12 +445,14 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
     @Override
     protected void run() {
-        for (;;) {
+        for (;;) {  // 死循环，直到NioEventLoop关闭
             try {
                 switch (selectStrategy.calculateStrategy(selectNowSupplier, hasTasks())) {
                     case SelectStrategy.CONTINUE:
                         continue;
-                    case SelectStrategy.SELECT:
+                    case SelectStrategy.SELECT: // 默认调用此方法
+                        // 判断wakeup是否为false，不是就设置为false
+                        // 选择( 查询 )任务
                         select(wakenUp.getAndSet(false));
 
                         // 'wakenUp.compareAndSet(false, true)' is always evaluated
@@ -449,16 +495,23 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 final int ioRatio = this.ioRatio;
                 if (ioRatio == 100) {
                     try {
+
+                        // 处理Channel感兴趣IO事件
                         processSelectedKeys();
                     } finally {
+
+                        // 运行所有普通和定时任务，不限时间
                         // Ensure we always run tasks.
                         runAllTasks();
                     }
                 } else {
                     final long ioStartTime = System.nanoTime();
                     try {
+
+                        // 处理Channel感兴趣IO事件
                         processSelectedKeys();
                     } finally {
+                        // 运行所有普通和定时任务，不限时间
                         // Ensure we always run tasks.
                         final long ioTime = System.nanoTime() - ioStartTime;
                         runAllTasks(ioTime * (100 - ioRatio) / ioRatio);
@@ -703,6 +756,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /** {@link Selector#wakeup()} 方法的唤醒操作是开销比较大的操作，并且每次重复调用相当于重复唤醒。所以，保证有且仅有进行一次唤醒。 */
     @Override
     protected void wakeup(boolean inEventLoop) {
         if (!inEventLoop && wakenUp.compareAndSet(false, true)) {
@@ -718,7 +772,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         try {
             return selector.selectNow();
         } finally {
-            // restore wakeup state if needed
+            // 恢复唤醒状态，进行复原
             if (wakenUp.get()) {
                 selector.wakeup();
             }
