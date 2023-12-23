@@ -70,6 +70,7 @@ public interface EventExecutorGroup extends ScheduledExecutorService, Iterable<E
      * Returns the {@link Future} which is notified when all {@link EventExecutor}s managed by this
      * {@link EventExecutorGroup} have been terminated.
      */
+    /** 返回当该链接 EventExecutorGroup 管理的所有 EventExecutor 均已终止时收到通知的 Future。 */
     Future<?> terminationFuture();
 
     /**

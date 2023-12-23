@@ -22,7 +22,10 @@ import java.util.Iterator;
 
 final class SelectedSelectionKeySet extends AbstractSet<SelectionKey> {
 
+    /** SelectionKey数组 */
     SelectionKey[] keys;
+
+    /** 数组大小 */
     int size;
 
     SelectedSelectionKeySet() {
@@ -36,6 +39,7 @@ final class SelectedSelectionKeySet extends AbstractSet<SelectionKey> {
         }
 
         keys[size++] = o;
+        // 超出大小则扩容
         if (size == keys.length) {
             increaseCapacity();
         }
@@ -73,7 +77,9 @@ final class SelectedSelectionKeySet extends AbstractSet<SelectionKey> {
     }
 
     private void increaseCapacity() {
+        // 两倍扩容
         SelectionKey[] newKeys = new SelectionKey[keys.length << 1];
+        // 复制给新数组
         System.arraycopy(keys, 0, newKeys, 0, size);
         keys = newKeys;
     }

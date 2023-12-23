@@ -127,6 +127,8 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
         final FutureListener<Object> terminationListener = new FutureListener<Object>() {
             @Override
             public void operationComplete(Future<Object> future) throws Exception {
+
+                // 如果所有EventExecutor都已经终止
                 if (terminatedChildren.incrementAndGet() == children.length) {
                     terminationFuture.setSuccess(null);
                 }
